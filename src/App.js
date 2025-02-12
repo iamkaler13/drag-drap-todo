@@ -1,90 +1,77 @@
-import React, { useEffect, useState } from "react";
-import "./App.css";
-import Memory from "./Memory/Memory";
+import { useEffect, useState } from "react";
+import AddTask from "./Todo/AddTask";
+import ShowTask from "./Todo/ShowTask";
 
 function App() {
-  const initialData = [
-    3, 6, 2, 4, 1, 5, 4, 1, 3, 6, 5, 2, 6, 5, 4, 3, 2, 1, 2, 6, 3, 4, 5, 1, 6,
-    2, 4, 3, 1, 5, 1, 6, 3, 2, 5, 4,
-  ];
+  const [task, setTask] = useState("");
+  const [showTask, setShowTask] = useState([]);
+  const [editIndex, setEditIndex] = useState(null);
+  const [editValue, setEditValue] = useState("");
 
-  const [data, setData] = useState(initialData);
-  const [showGame, setShowGame] = useState(false);
-  const [numShow, setNumShow] = useState([]);
-  const [element, setElement] = useState([]);
-  const [matched, setMatched] = useState([]);
-  const [gameWon, setGameWon] = useState(false);
-
+  // Load stored tasks from localStorage on initial render
   useEffect(() => {
-    if (numShow.length === 2) {
-      if (element[0] === element[1]) {
-        setMatched((prev) => [...prev, ...numShow]);
-      }
-      setTimeout(() => {
-        setNumShow([]);
-        setElement([]);
-      }, 1000);
-    }
-  }, [numShow, element]);
+    const storedTasks = JSON.parse(localStorage.getItem("task")) || [];
+    setShowTask(storedTasks);
+  }, []);
 
+  // Update localStorage when tasks change
   useEffect(() => {
-    if (matched.length === data.length) {
-      setGameWon(true);
-    }
-  }, [matched, data]);
+    localStorage.setItem("task", JSON.stringify(showTask));
+  }, [showTask]);
 
-  const handleGameLogic = (key, ele) => {
-    if (numShow.length < 2 && !numShow.includes(key) && !matched.includes(key)) {
-      setNumShow((prev) => [...prev, key]);
-      setElement((prev) => [...prev, ele]);
-    }
+  // Add Task
+  const handleAddTask = (value) => {
+    if (!value.trim()) return; // Prevent adding empty tasks
+    setShowTask((prev) => [...prev, { name: value }]);
+    setTask("");
   };
 
-  const handlePlayAgain = () => {
-    setData(shuffleData([...initialData])); // Shuffle the data
-    setShowGame(false);
-    setNumShow([]);
-    setElement([]);
-    setMatched([]);
-    setGameWon(false);
+  // Handle Input Change
+  const handleChange = (value) => {
+    setTask(value);
   };
 
-  // Function to shuffle the data
-  const shuffleData = (array) => {
-    return array.sort(() => Math.random() - 0.5);
+  // Delete Task
+  const handleDelete = (index) => {
+    const newTasks = showTask.filter((_, key) => key !== index);
+    setShowTask(newTasks);
+    localStorage.setItem("task", JSON.stringify(newTasks));
+  };
+
+  // Edit Task - Open Input
+  const handleEdit = (index) => {
+    setEditIndex(index);
+    setEditValue(showTask[index].name);
+  };
+
+  // Save Edited Task
+  const handleUpdateTask = () => {
+    if (!editValue.trim()) return;
+    const updatedTasks = showTask.map((task, key) =>
+      key === editIndex ? { name: editValue } : task
+    );
+    setShowTask(updatedTasks);
+    localStorage.setItem("task", JSON.stringify(updatedTasks));
+    setEditIndex(null);
+    setEditValue("");
   };
 
   return (
-    <div className="App">
-      <header className="App-header sm:pt-12">
-        <h2 className="text-[45px]">Memory Game</h2>
-        {!gameWon ? (
-          <button
-            className="bg-blue-500 text-white font-medium py-1 px-7 sm:mt-8"
-            onClick={() => setShowGame(true)}
-          >
-            Play Game
-          </button>
-        ) : (
-          <div>
-            <h2 className="text-[30px] text-green-500">Congratulations! You win the game!</h2>
-            <button
-              className="bg-blue-500 text-white font-medium py-1 px-7 sm:mt-8"
-              onClick={handlePlayAgain}
-            >
-              Play Again
-            </button>
-          </div>
-        )}
-        {showGame && !gameWon && (
-          <Memory
-            data={data}
-            numShow={numShow}
-            matched={matched}
-            handleGameLogic={handleGameLogic}
-          />
-        )}
-      </header>
+    <div className="w-full m-auto max-w-[600px]">
+      <h1 className="text-3xl">To-Do List</h1>
+      <div className="flex justify-center flex-col gap-9 w-full m-auto">
+        <AddTask task={task} handleAddTask={handleAddTask} handleChange={handleChange} />
+        <ShowTask
+          setShowTask={setShowTask}
+          data={showTask}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          editIndex={editIndex}
+          editValue={editValue}
+          setEditValue={setEditValue}
+          handleUpdateTask={handleUpdateTask}
+        />
+      </div>
     </div>
   );
 }
